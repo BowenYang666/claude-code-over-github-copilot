@@ -9,19 +9,19 @@ model_list:
       extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
   - model_name: claude-opus-4-6
     litellm_params:
-      model: github_copilot/claude-opus-4-6
+      model: github_copilot/claude-opus-4.6
       extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
   - model_name: opus
     litellm_params:
-      model: github_copilot/claude-opus-4-6
+      model: github_copilot/claude-opus-4.6
       extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
   - model_name: opus[1m]
     litellm_params:
-      model: github_copilot/claude-opus-4-6
+      model: github_copilot/claude-opus-4.6-1m
       extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
   - model_name: claude-opus-4
     litellm_params:
-      model: github_copilot/claude-opus-4-6
+      model: github_copilot/claude-opus-4.6
       extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
 
 litellm_settings:
