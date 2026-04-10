@@ -18,6 +18,9 @@ The architecture uses:
 
 ## Quick Start
 
+> **Windows users**: Use `.\run.ps1 <command>` in PowerShell instead of `make <command>`.
+> See [Windows Quick Start](#windows-quick-start) below.
+
 ### 1. Install Claude Code (if not already installed)
 ```bash
 # Install Claude Code desktop application via npm
@@ -72,6 +75,50 @@ make test
 claude
 ```
 
+## Windows Quick Start
+
+Windows users can use the PowerShell script `run.ps1` instead of `make`. All commands follow the same workflow.
+
+### Prerequisites
+- **Python 3.8+** installed and available in PATH
+- **Node.js / npm** (for installing Claude Code)
+- **PowerShell 5.1+** (included with Windows 10/11)
+
+### Steps
+
+```powershell
+# 1. Install Claude Code (if not already installed)
+.\run.ps1 install-claude
+
+# 2. Set up environment, dependencies, and generate API keys
+.\run.ps1 setup
+
+# 3. Configure Claude Code to use the local proxy
+.\run.ps1 claude-enable
+
+# 4. Start LiteLLM proxy server (first run triggers GitHub device auth)
+.\run.ps1 start
+
+# 5. Test the connection (in a new terminal while proxy is running)
+.\run.ps1 test
+
+# 6. In your project folder, start Claude Code
+claude
+```
+
+### Additional Windows Commands
+
+```powershell
+.\run.ps1 claude-status       # View current configuration and proxy status
+.\run.ps1 claude-disable      # Restore Claude Code to default Anthropic servers
+.\run.ps1 stop                # Stop the LiteLLM proxy server
+.\run.ps1 list-models         # List all available GitHub Copilot models
+.\run.ps1 list-models-enabled # List only enabled models
+```
+
+> **Note**: If you get an execution policy error, run:
+> `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
+
 ## Model Configuration
 
 The proxy exposes these models to Claude Code:
@@ -81,7 +128,7 @@ The proxy exposes these models to Claude Code:
 | `claude-sonnet-4` | `github_copilot/claude-sonnet-4` |
 | `gpt-4`         | `github_copilot/gpt-4`         |
 
-## Additional Commands
+## Additional Commands (Linux/macOS)
 
 ### Check Status
 ```bash
@@ -103,7 +150,8 @@ make stop
 
 ## Troubleshooting
 
-- **Authentication Issues**: The first `make start` will prompt for GitHub authentication
-- **Connection Problems**: Use `make test` to verify the proxy is working
-- **Configuration Issues**: Use `make claude-status` to check your settings
+- **Authentication Issues**: The first `make start` (or `.\run.ps1 start`) will prompt for GitHub authentication
+- **Connection Problems**: Use `make test` (or `.\run.ps1 test`) to verify the proxy is working
+- **Configuration Issues**: Use `make claude-status` (or `.\run.ps1 claude-status`) to check your settings
 - **Reset Everything**: Use `make claude-disable` then `make claude-enable` to reconfigure
+- **Windows Execution Policy**: If PowerShell blocks the script, run `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
