@@ -11,6 +11,18 @@ model_list:
     litellm_params:
       model: github_copilot/claude-sonnet-4
       extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
+  - model_name: opus
+    litellm_params:
+      model: github_copilot/claude-sonnet-4
+      extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
+  - model_name: opus[1m]
+    litellm_params:
+      model: github_copilot/claude-sonnet-4
+      extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
+  - model_name: claude-opus-4
+    litellm_params:
+      model: github_copilot/claude-sonnet-4
+      extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
 
 litellm_settings:
   drop_params: true

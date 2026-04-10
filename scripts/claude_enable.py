@@ -38,7 +38,7 @@ def main():
     }
 
     # Update model to use
-    settings['model'] = 'claude-sonnet-4'
+    settings['model'] = 'claude-opus-4-6'
 
     # Add schema if it's a new file
     if '$schema' not in settings:
