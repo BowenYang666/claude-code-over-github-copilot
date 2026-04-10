@@ -94,13 +94,22 @@ function Start-Proxy {
         return
     }
 
-    # Bypass system proxy for GitHub Copilot API calls.
-    # Many Windows setups have a local proxy (e.g. Clash/V2Ray) that can cause
-    # SSL errors with httpx. LiteLLM needs direct access to github.com and
-    # api.github.com / api.githubcopilot.com.
+    # Fix proxy for httpx/LiteLLM on Windows.
+    # httpx reads the Windows system proxy from the registry but may fail with
+    # SSL errors during HTTPS CONNECT. Explicitly setting HTTPS_PROXY and
+    # HTTP_PROXY via environment variables resolves this.
     if (-not $env:HTTPS_PROXY -and -not $env:HTTP_PROXY) {
-        $env:NO_PROXY = "*"
-        Write-Host "[INFO] System proxy detected but no explicit HTTPS_PROXY set. Using direct connection (NO_PROXY=*)." -ForegroundColor Yellow
+        try {
+            $regProxy = Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' -ErrorAction Stop
+            if ($regProxy.ProxyEnable -eq 1 -and $regProxy.ProxyServer) {
+                $proxyUrl = "http://$($regProxy.ProxyServer)"
+                $env:HTTPS_PROXY = $proxyUrl
+                $env:HTTP_PROXY = $proxyUrl
+                Write-Host "[INFO] Detected system proxy ($($regProxy.ProxyServer)). Set HTTPS_PROXY=$proxyUrl" -ForegroundColor Yellow
+            }
+        } catch {
+            # No registry proxy, nothing to do
+        }
     }
 
     # Load .env variables into the current session
