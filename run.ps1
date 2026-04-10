@@ -4,22 +4,22 @@
 .DESCRIPTION
     PowerShell equivalent of the Makefile for Windows users.
 .PARAMETER Command
-    The command to execute: help, setup, install-claude, start, stop, test,
+    The command to execute: run (default), help, setup, install-claude, start, stop, test,
     claude-enable, claude-disable, claude-status, list-models, list-models-enabled
 .EXAMPLE
-    .\run.ps1 setup
-    .\run.ps1 start
-    .\run.ps1 claude-enable
+    .\run.ps1              # One-click: setup + configure + start proxy
+    .\run.ps1 start        # Start proxy only (after initial setup)
+    .\run.ps1 claude-status
 #>
 
 param(
     [Parameter(Position = 0)]
     [ValidateSet(
-        "help", "setup", "install-claude", "start", "stop", "test",
+        "run", "help", "setup", "install-claude", "start", "stop", "test",
         "claude-enable", "claude-disable", "claude-status",
         "list-models", "list-models-enabled"
     )]
-    [string]$Command = "help"
+    [string]$Command = "run"
 )
 
 $ErrorActionPreference = "Stop"
@@ -28,6 +28,7 @@ Set-Location $ScriptDir
 
 function Show-Help {
     Write-Host "Available commands:" -ForegroundColor Cyan
+    Write-Host "  .\run.ps1                    - One-click: setup + configure + start proxy" -ForegroundColor Green
     Write-Host "  .\run.ps1 setup              - Set up virtual environment and dependencies"
     Write-Host "  .\run.ps1 install-claude      - Install Claude Code desktop application"
     Write-Host "  .\run.ps1 start              - Start LiteLLM proxy server"
@@ -38,6 +39,22 @@ function Show-Help {
     Write-Host "  .\run.ps1 claude-status       - Show current Claude Code configuration"
     Write-Host "  .\run.ps1 list-models         - List all GitHub Copilot models"
     Write-Host "  .\run.ps1 list-models-enabled - List only enabled GitHub Copilot models"
+}
+
+function Invoke-Run {
+    Write-Host "=== Claude Code over GitHub Copilot - One-click Setup ===" -ForegroundColor Cyan
+    Write-Host ""
+
+    # Step 1: Setup
+    Invoke-Setup
+    Write-Host ""
+
+    # Step 2: Configure Claude Code
+    Enable-ClaudeProxy
+    Write-Host ""
+
+    # Step 3: Start proxy
+    Start-Proxy
 }
 
 function Invoke-Setup {
@@ -265,6 +282,7 @@ function Show-ClaudeStatus {
 
 # Main dispatch
 switch ($Command) {
+    "run"                   { Invoke-Run }
     "help"                  { Show-Help }
     "setup"                 { Invoke-Setup }
     "install-claude"        { Install-Claude }
@@ -276,5 +294,5 @@ switch ($Command) {
     "claude-status"         { Show-ClaudeStatus }
     "list-models"           { & .\list-copilot-models.ps1 }
     "list-models-enabled"   { & .\list-copilot-models.ps1 -EnabledOnly }
-    default                 { Show-Help }
+    default                 { Invoke-Run }
 }
