@@ -111,6 +111,14 @@ function Start-Proxy {
         return
     }
 
+    # Kill any existing process on port 4444
+    $existing = Get-NetTCPConnection -LocalPort 4444 -ErrorAction SilentlyContinue
+    if ($existing) {
+        Write-Host "[INFO] Port 4444 is in use, killing existing process..." -ForegroundColor Yellow
+        $existing | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
+        Start-Sleep -Seconds 1
+    }
+
     # Fix proxy for httpx/LiteLLM on Windows.
     # httpx reads the Windows system proxy from the registry but may fail with
     # SSL errors during HTTPS CONNECT. Explicitly setting HTTPS_PROXY and
