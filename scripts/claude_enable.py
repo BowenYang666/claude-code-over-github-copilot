@@ -33,7 +33,7 @@ def main():
     settings['env'] = {
         'ANTHROPIC_AUTH_TOKEN': master_key,
         'ANTHROPIC_BASE_URL': 'http://localhost:4444',
-        'ANTHROPIC_MODEL': 'claude-sonnet-4',
+        'ANTHROPIC_MODEL': 'claude-opus-4-6',
         'ANTHROPIC_SMALL_FAST_MODEL': 'gpt-4'
     }
 
