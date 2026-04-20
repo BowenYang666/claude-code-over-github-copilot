@@ -17,7 +17,7 @@ param(
     [ValidateSet(
         "run", "help", "setup", "install-claude", "start", "stop", "test",
         "claude-enable", "claude-disable", "claude-status",
-        "list-models", "list-models-enabled"
+        "list-models", "list-models-enabled", "update-models"
     )]
     [string]$Command = "run"
 )
@@ -39,6 +39,7 @@ function Show-Help {
     Write-Host "  .\run.ps1 claude-status       - Show current Claude Code configuration"
     Write-Host "  .\run.ps1 list-models         - List all GitHub Copilot models"
     Write-Host "  .\run.ps1 list-models-enabled - List only enabled GitHub Copilot models"
+    Write-Host "  .\run.ps1 update-models       - Auto-update model config from GitHub Copilot"
 }
 
 function Invoke-Run {
@@ -302,5 +303,6 @@ switch ($Command) {
     "claude-status"         { Show-ClaudeStatus }
     "list-models"           { & .\list-copilot-models.ps1 }
     "list-models-enabled"   { & .\list-copilot-models.ps1 -EnabledOnly }
+    "update-models"         { & .\venv\Scripts\python.exe update_models.py }
     default                 { Invoke-Run }
 }
