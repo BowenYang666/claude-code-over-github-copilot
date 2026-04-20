@@ -30,15 +30,13 @@ def main():
             settings = {}
 
     # Add proxy configuration
+    # No hardcoded model - Claude Code will use whatever model the user selects.
+    # All model names are forwarded to GitHub Copilot via wildcard routing.
     settings['env'] = {
         'ANTHROPIC_AUTH_TOKEN': master_key,
         'ANTHROPIC_BASE_URL': 'http://localhost:4444',
-        'ANTHROPIC_MODEL': 'claude-opus-4-6',
         'ANTHROPIC_SMALL_FAST_MODEL': 'gpt-4'
     }
-
-    # Update model to use
-    settings['model'] = 'claude-opus-4-6'
 
     # Add schema if it's a new file
     if '$schema' not in settings:
