@@ -14,8 +14,9 @@ by 10-20% for heavy Chinese text). Good enough for a "remaining context" gauge.
 import json
 import tiktoken
 
-# GitHub Copilot enforces 128K input token limit for all models
-COPILOT_MAX_INPUT = 128000
+# GitHub Copilot's actual hard limit (verified empirically via 400 error).
+# LiteLLM's model_cost map says 128K, but the real upstream cap is 168K.
+COPILOT_MAX_INPUT = 168000
 
 # Use o200k_base (GPT-4o tokenizer) - friendlier to Chinese than cl100k_base
 _encoder = tiktoken.get_encoding("o200k_base")
@@ -140,7 +141,14 @@ class _TokenMonitorASGIMiddleware:
             return
 
         path = scope.get("path", "")
-        if "/v1/messages" not in path or "count_tokens" in path:
+
+        # Handle count_tokens ourselves to avoid LiteLLM's bug with
+        # Anthropic-format `type: "image"` content blocks.
+        if "count_tokens" in path:
+            await self._handle_count_tokens(scope, receive, send)
+            return
+
+        if "/v1/messages" not in path:
             await self.app(scope, receive, send)
             return
 
@@ -180,3 +188,41 @@ class _TokenMonitorASGIMiddleware:
             return await receive()
 
         await self.app(scope, replay_receive, send)
+
+    async def _handle_count_tokens(self, scope, receive, send):
+        """Implement /v1/messages/count_tokens locally with tiktoken.
+
+        LiteLLM's built-in implementation crashes on Anthropic-format image
+        content blocks (`type: "image"`). We do it ourselves and return the
+        same response shape Anthropic returns.
+        """
+        body = b""
+        more_body = True
+        while more_body:
+            message = await receive()
+            if message["type"] == "http.request":
+                body += message.get("body", b"")
+                more_body = message.get("more_body", False)
+            elif message["type"] == "http.disconnect":
+                return
+
+        try:
+            data = json.loads(body) if body else {}
+            tokens = estimate_input_tokens(data)
+        except Exception:
+            tokens = 0
+
+        response_body = json.dumps({"input_tokens": tokens}).encode("utf-8")
+
+        await send({
+            "type": "http.response.start",
+            "status": 200,
+            "headers": [
+                (b"content-type", b"application/json"),
+                (b"content-length", str(len(response_body)).encode()),
+            ],
+        })
+        await send({
+            "type": "http.response.body",
+            "body": response_body,
+        })
