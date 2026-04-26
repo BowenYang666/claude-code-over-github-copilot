@@ -147,7 +147,7 @@ function Start-Proxy {
 
     Write-Host "Proxy will start on http://localhost:4444"
     Write-Host "Press Ctrl+C to stop the proxy" -ForegroundColor Cyan
-    & .\venv\Scripts\litellm.exe --config copilot-config.yaml --port 4444
+    & .\venv\Scripts\python.exe start_proxy.py
 }
 
 function Stop-Proxy {
