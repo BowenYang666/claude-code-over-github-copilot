@@ -28,6 +28,18 @@ model_list:
     litellm_params:
       model: github_copilot/claude-opus-4.7
       extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
+  - model_name: claude-opus-4-7-1m
+    litellm_params:
+      model: github_copilot/claude-opus-4.7-1m-internal
+      extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
+  - model_name: claude-opus-4-7-high
+    litellm_params:
+      model: github_copilot/claude-opus-4.7-high
+      extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
+  - model_name: claude-opus-4-7-xhigh
+    litellm_params:
+      model: github_copilot/claude-opus-4.7-xhigh
+      extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
   - model_name: claude-sonnet-4-5
     litellm_params:
       model: github_copilot/claude-sonnet-4.5
@@ -35,6 +47,20 @@ model_list:
   - model_name: claude-sonnet-4-6
     litellm_params:
       model: github_copilot/claude-sonnet-4.6
+      extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
+
+  # === Date-suffixed aliases used by Claude Code defaults ===
+  - model_name: claude-haiku-4-5-20251001
+    litellm_params:
+      model: github_copilot/claude-haiku-4.5
+      extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
+  - model_name: claude-opus-4-5-20250929
+    litellm_params:
+      model: github_copilot/claude-opus-4.5
+      extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
+  - model_name: claude-sonnet-4-5-20250929
+    litellm_params:
+      model: github_copilot/claude-sonnet-4.5
       extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
 
   # === Wildcard fallback: forwards any other model name as-is ===

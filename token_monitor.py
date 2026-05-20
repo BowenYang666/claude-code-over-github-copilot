@@ -14,9 +14,59 @@ by 10-20% for heavy Chinese text). Good enough for a "remaining context" gauge.
 import json
 import tiktoken
 
-# GitHub Copilot's actual hard limit (verified empirically via 400 error).
-# LiteLLM's model_cost map says 128K, but the real upstream cap is 168K.
-COPILOT_MAX_INPUT = 168000
+# GitHub Copilot's per-model input limits (verified empirically).
+# Standard Claude models cap at 168K; "-1m" variants allow ~1M.
+DEFAULT_MAX_INPUT = 168000
+MODEL_MAX_INPUT = {
+    # 1M-context variants
+    "claude-opus-4-6-1m": 1_000_000,
+    "claude-opus-4.6-1m": 1_000_000,
+    "claude-opus-4-7-1m": 1_000_000,
+    "claude-opus-4.7-1m": 1_000_000,
+    "claude-sonnet-4-5-1m": 1_000_000,
+    "claude-sonnet-4.5-1m": 1_000_000,
+}
+
+
+def _has_1m_beta(data: dict, headers: dict | None = None, query: str = "") -> bool:
+    """Detect if request opts into Anthropic's 1M context beta."""
+    def _check(s):
+        if not isinstance(s, str):
+            return False
+        s = s.lower()
+        return "context-1m" in s or "1m-2025" in s
+
+    if isinstance(data, dict):
+        betas = data.get("betas") or data.get("anthropic_beta")
+        if isinstance(betas, str) and _check(betas):
+            return True
+        if isinstance(betas, list):
+            for b in betas:
+                if _check(b):
+                    return True
+    if headers:
+        # ASGI header keys are lowercase
+        hv = headers.get("anthropic-beta", "")
+        if _check(hv):
+            return True
+    if _check(query):
+        return True
+    return False
+
+
+def _limit_for_model(model: str, data: dict | None = None,
+                    headers: dict | None = None, query: str = "") -> int:
+    if _has_1m_beta(data or {}, headers, query):
+        return 1_000_000
+    if not model:
+        return DEFAULT_MAX_INPUT
+    m = model.lower()
+    if m in MODEL_MAX_INPUT:
+        return MODEL_MAX_INPUT[m]
+    # Heuristic: any model id containing "-1m" gets the 1M cap
+    if "-1m" in m or "_1m" in m:
+        return 1_000_000
+    return DEFAULT_MAX_INPUT
 
 # Use o200k_base (GPT-4o tokenizer) - friendlier to Chinese than cl100k_base
 _encoder = tiktoken.get_encoding("o200k_base")
@@ -81,9 +131,11 @@ def estimate_input_tokens(data: dict) -> int:
     return total
 
 
-def print_token_bar(input_tokens: int, model: str = "?"):
-    remaining = COPILOT_MAX_INPUT - input_tokens
-    pct = (input_tokens / COPILOT_MAX_INPUT) * 100
+def print_token_bar(input_tokens: int, model: str = "?", data: dict | None = None,
+                    headers: dict | None = None, query: str = ""):
+    limit = _limit_for_model(model, data, headers, query)
+    remaining = limit - input_tokens
+    pct = (input_tokens / limit) * 100
 
     if pct >= 90:
         color, icon = "\033[1;31m", "🔴"
@@ -102,7 +154,7 @@ def print_token_bar(input_tokens: int, model: str = "?"):
     print(flush=True)
     print(
         f"{color}{icon} [{bar}] {pct:.0f}% | "
-        f"input: ~{input_tokens:,} / {COPILOT_MAX_INPUT:,} | "
+        f"input: ~{input_tokens:,} / {limit:,} | "
         f"remaining: ~{remaining:,} | "
         f"model: {model}{reset}",
         flush=True,
@@ -166,12 +218,51 @@ class _TokenMonitorASGIMiddleware:
                 return
 
         # Estimate tokens (best-effort)
+        data = {}
+        headers = {
+            k.decode("latin-1").lower(): v.decode("latin-1")
+            for k, v in scope.get("headers", [])
+        }
+        query = scope.get("query_string", b"").decode("latin-1", "ignore")
         try:
             data = json.loads(body) if body else {}
+
+            # If client opts into 1M context beta but didn't pick the -1m model
+            # variant, rewrite the model id so Copilot actually routes to the
+            # 1M-capable model. Map base model -> its 1M variant id.
+            MODEL_1M_MAP = {
+                "claude-opus-4-6": "claude-opus-4-6-1m",
+                "claude-opus-4.6": "claude-opus-4-6-1m",
+                "claude-opus-4-7": "claude-opus-4-7-1m",
+                "claude-opus-4.7": "claude-opus-4-7-1m",
+            }
+            model_in = data.get("model", "")
+            if (
+                isinstance(model_in, str)
+                and model_in.lower() in MODEL_1M_MAP
+                and _has_1m_beta(data, headers, query)
+            ):
+                new_model = MODEL_1M_MAP[model_in.lower()]
+                data["model"] = new_model
+                body = json.dumps(data).encode("utf-8")
+                # Patch Content-Length in scope headers so downstream is happy
+                new_headers = []
+                for k, v in scope.get("headers", []):
+                    if k.lower() == b"content-length":
+                        new_headers.append((k, str(len(body)).encode("latin-1")))
+                    else:
+                        new_headers.append((k, v))
+                scope["headers"] = new_headers
+                print(
+                    f"\033[36m[TokenMonitor] 1M beta detected -> rewriting "
+                    f"model {model_in} -> {new_model}\033[0m",
+                    flush=True,
+                )
+
             tokens = estimate_input_tokens(data)
             model = data.get("model", "?")
             if tokens > 0:
-                print_token_bar(tokens, model)
+                print_token_bar(tokens, model, data, headers, query)
         except Exception as e:
             print(f"\033[33m[TokenMonitor] estimate failed: {e}\033[0m", flush=True)
 
