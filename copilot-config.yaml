@@ -31,15 +31,22 @@ model_list:
   - model_name: claude-opus-4-7-1m
     litellm_params:
       model: github_copilot/claude-opus-4.7-1m-internal
+      api_base: https://api.enterprise.githubcopilot.com
       extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
   - model_name: claude-opus-4-7-high
     litellm_params:
       model: github_copilot/claude-opus-4.7-high
+      api_base: https://api.enterprise.githubcopilot.com
       extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
   - model_name: claude-opus-4-7-xhigh
     litellm_params:
       model: github_copilot/claude-opus-4.7-xhigh
+      api_base: https://api.enterprise.githubcopilot.com
       extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
+  # NOTE: The -1m-internal / -high / -xhigh variants are internal/experimental
+  # and may disappear from upstream without notice. If you see 400
+  # model_not_supported errors, run scripts/check_copilot_models.py to verify
+  # they are still listed; comment out the entries above if not.
   - model_name: claude-sonnet-4-5
     litellm_params:
       model: github_copilot/claude-sonnet-4.5
