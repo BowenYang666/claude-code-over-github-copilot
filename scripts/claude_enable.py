@@ -14,7 +14,7 @@ def main():
         sys.exit(1)
 
     master_key = sys.argv[1]
-    claude_dir = Path.home() / '.claude'
+    claude_dir = Path(os.environ.get('CLAUDE_CONFIG_DIR') or (Path.home() / '.claude'))
     settings_file = claude_dir / 'settings.json'
 
     # Create .claude directory if it doesn't exist

@@ -4,11 +4,12 @@ Script to disable Claude Code proxy configuration.
 Usage: claude_disable.py
 """
 import json
+import os
 import sys
 from pathlib import Path
 
 def main():
-    claude_dir = Path.home() / '.claude'
+    claude_dir = Path(os.environ.get('CLAUDE_CONFIG_DIR') or (Path.home() / '.claude'))
     settings_file = claude_dir / 'settings.json'
 
     if not settings_file.exists():

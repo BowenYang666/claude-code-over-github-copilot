@@ -13,9 +13,21 @@ $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $ScriptDir
 
-# Step 1: Start V2RayN if not already running
-$v2rayPath = "D:\doc\vpn\v2rayN-windows-64\v2rayN.exe"
+# Load V2RAY_PATH from .env if present (so the path isn't hardcoded per-machine)
+$v2rayPath = $null
+if (Test-Path ".env") {
+    Get-Content ".env" | ForEach-Object {
+        if ($_ -match '^\s*V2RAY_PATH\s*=\s*"?([^"#\r\n]+?)"?\s*$') {
+            $v2rayPath = $Matches[1].Trim()
+        }
+    }
+}
+if (-not $v2rayPath) {
+    # Fallback default; override by setting V2RAY_PATH in .env
+    $v2rayPath = "D:\doc\vpn\v2rayN-windows-64\v2rayN.exe"
+}
 
+# Step 1: Start V2RayN if not already running
 if (Get-Process -Name "v2rayN" -ErrorAction SilentlyContinue) {
     Write-Host "[OK] V2RayN is already running" -ForegroundColor Green
 } else {

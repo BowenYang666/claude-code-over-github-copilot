@@ -214,7 +214,13 @@ function Enable-ClaudeProxy {
         return
     }
 
-    $settingsFile = Join-Path $env:USERPROFILE ".claude\settings.json"
+    $claudeDir = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { Join-Path $env:USERPROFILE ".claude" }
+    $settingsFile = Join-Path $claudeDir "settings.json"
+
+    # Ensure the directory exists (claude_enable.py also does this, but be safe for backup step below)
+    if (-not (Test-Path $claudeDir)) {
+        New-Item -ItemType Directory -Path $claudeDir -Force | Out-Null
+    }
 
     # Backup existing settings
     if (Test-Path $settingsFile) {
@@ -224,6 +230,7 @@ function Enable-ClaudeProxy {
         Write-Host "Backed up existing settings to $backupFile"
     }
 
+    Write-Host "Writing settings to: $settingsFile" -ForegroundColor Cyan
     & .\venv\Scripts\python.exe scripts\claude_enable.py $masterKey
     Write-Host "[OK] Claude Code configured to use local proxy" -ForegroundColor Green
     Write-Host "Tip: Make sure to run '.\run.ps1 start' to start the LiteLLM proxy server" -ForegroundColor Cyan
@@ -232,7 +239,8 @@ function Enable-ClaudeProxy {
 function Disable-ClaudeProxy {
     Write-Host "Restoring Claude Code to default settings..." -ForegroundColor Yellow
 
-    $settingsFile = Join-Path $env:USERPROFILE ".claude\settings.json"
+    $claudeDir = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { Join-Path $env:USERPROFILE ".claude" }
+    $settingsFile = Join-Path $claudeDir "settings.json"
 
     # Backup current proxy settings
     if (Test-Path $settingsFile) {
@@ -243,7 +251,7 @@ function Disable-ClaudeProxy {
     }
 
     # Try to restore from latest backup
-    $backups = Get-ChildItem -Path (Join-Path $env:USERPROFILE ".claude") -Filter "settings.json.backup.*" -ErrorAction SilentlyContinue |
+    $backups = Get-ChildItem -Path $claudeDir -Filter "settings.json.backup.*" -ErrorAction SilentlyContinue |
         Sort-Object LastWriteTime -Descending
 
     if ($backups) {
@@ -259,7 +267,11 @@ function Show-ClaudeStatus {
     Write-Host "Current Claude Code configuration:" -ForegroundColor Cyan
     Write-Host "=================================="
 
-    $settingsFile = Join-Path $env:USERPROFILE ".claude\settings.json"
+    $claudeDir = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { Join-Path $env:USERPROFILE ".claude" }
+    $settingsFile = Join-Path $claudeDir "settings.json"
+    if ($env:CLAUDE_CONFIG_DIR) {
+        Write-Host "CLAUDE_CONFIG_DIR: $env:CLAUDE_CONFIG_DIR" -ForegroundColor DarkGray
+    }
 
     if (Test-Path $settingsFile) {
         Write-Host "Settings file: $settingsFile"
