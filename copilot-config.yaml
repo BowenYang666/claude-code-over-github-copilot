@@ -4,7 +4,7 @@
 #
 # Run `python update_models.py` or `.\run.ps1 update-models` to refresh.
 #
-# Last updated with 40 chat models.
+# Last updated with 36 chat models.
 
 model_list:
   # === Auto-compatible mappings (dash -> dot conversion) ===
@@ -28,25 +28,22 @@ model_list:
     litellm_params:
       model: github_copilot/claude-opus-4.7
       extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
-  - model_name: claude-opus-4-7-1m
+  - model_name: claude-opus-4-7-1m-internal
     litellm_params:
       model: github_copilot/claude-opus-4.7-1m-internal
-      api_base: https://api.enterprise.githubcopilot.com
       extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
   - model_name: claude-opus-4-7-high
     litellm_params:
       model: github_copilot/claude-opus-4.7-high
-      api_base: https://api.enterprise.githubcopilot.com
       extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
   - model_name: claude-opus-4-7-xhigh
     litellm_params:
       model: github_copilot/claude-opus-4.7-xhigh
-      api_base: https://api.enterprise.githubcopilot.com
       extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
-  # NOTE: The -1m-internal / -high / -xhigh variants are internal/experimental
-  # and may disappear from upstream without notice. If you see 400
-  # model_not_supported errors, run scripts/check_copilot_models.py to verify
-  # they are still listed; comment out the entries above if not.
+  - model_name: claude-opus-4-8
+    litellm_params:
+      model: github_copilot/claude-opus-4.8
+      extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
   - model_name: claude-sonnet-4-5
     litellm_params:
       model: github_copilot/claude-sonnet-4.5
@@ -54,20 +51,6 @@ model_list:
   - model_name: claude-sonnet-4-6
     litellm_params:
       model: github_copilot/claude-sonnet-4.6
-      extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
-
-  # === Date-suffixed aliases used by Claude Code defaults ===
-  - model_name: claude-haiku-4-5-20251001
-    litellm_params:
-      model: github_copilot/claude-haiku-4.5
-      extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
-  - model_name: claude-opus-4-5-20250929
-    litellm_params:
-      model: github_copilot/claude-opus-4.5
-      extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
-  - model_name: claude-sonnet-4-5-20250929
-    litellm_params:
-      model: github_copilot/claude-sonnet-4.5
       extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
 
   # === Wildcard fallback: forwards any other model name as-is ===
