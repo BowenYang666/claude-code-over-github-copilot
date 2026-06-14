@@ -12,7 +12,21 @@ by 10-20% for heavy Chinese text). Good enough for a "remaining context" gauge.
 """
 
 import json
+import re
 import tiktoken
+
+
+# Claude Code sends dated model ids for some defaults / the small-fast model,
+# e.g. "claude-haiku-4-5-20251001". GitHub Copilot only knows the undated id
+# ("claude-haiku-4.5"). Strip any trailing -YYYYMMDD so the request matches the
+# undated config entry. Generic by design: future dates need no config change.
+_DATE_SUFFIX_RE = re.compile(r"-\d{8}$")
+
+
+def _strip_date_suffix(model: str) -> str:
+    if not isinstance(model, str):
+        return model
+    return _DATE_SUFFIX_RE.sub("", model)
 
 # GitHub Copilot's per-model input limits (verified via
 # scripts/check_copilot_models.py against the live /models endpoint).
@@ -237,20 +251,29 @@ class _TokenMonitorASGIMiddleware:
         try:
             data = json.loads(body) if body else {}
 
-            # Historical: when only -1m variants supported 1M context, we
-            # rewrote base model -> -1m variant on beta opt-in. As of mid-2026
-            # Copilot's base Opus 4.6/4.7/4.8 and Sonnet 4.6 all have 1M
-            # context natively, so this map is intentionally empty. Re-add
-            # entries here if upstream regresses (verify with
-            # scripts/check_copilot_models.py first).
-            MODEL_1M_MAP = {}
             model_in = data.get("model", "")
+            new_model = model_in
+
+            # 1) Generic: strip dated suffix (claude-haiku-4-5-20251001 ->
+            #    claude-haiku-4-5) so it matches the undated config entry.
+            new_model = _strip_date_suffix(new_model)
+
+            # 2) Historical: when only -1m variants supported 1M context, we
+            #    rewrote base model -> -1m variant on beta opt-in. As of
+            #    mid-2026 Copilot's base Opus 4.6/4.7/4.8 and Sonnet 4.6 all
+            #    have 1M context natively, so this map is intentionally empty.
+            #    Re-add entries here if upstream regresses (verify with
+            #    scripts/check_copilot_models.py first).
+            MODEL_1M_MAP = {}
             if (
-                isinstance(model_in, str)
-                and model_in.lower() in MODEL_1M_MAP
+                isinstance(new_model, str)
+                and new_model.lower() in MODEL_1M_MAP
                 and _has_1m_beta(data, headers, query)
             ):
-                new_model = MODEL_1M_MAP[model_in.lower()]
+                new_model = MODEL_1M_MAP[new_model.lower()]
+
+            # Apply rewrite (if any) once: update body + Content-Length.
+            if isinstance(model_in, str) and new_model != model_in:
                 data["model"] = new_model
                 body = json.dumps(data).encode("utf-8")
                 # Patch Content-Length in scope headers so downstream is happy
@@ -262,8 +285,8 @@ class _TokenMonitorASGIMiddleware:
                         new_headers.append((k, v))
                 scope["headers"] = new_headers
                 print(
-                    f"\033[36m[TokenMonitor] 1M beta detected -> rewriting "
-                    f"model {model_in} -> {new_model}\033[0m",
+                    f"\033[36m[TokenMonitor] rewriting model "
+                    f"{model_in} -> {new_model}\033[0m",
                     flush=True,
                 )
 
