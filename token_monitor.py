@@ -14,17 +14,27 @@ by 10-20% for heavy Chinese text). Good enough for a "remaining context" gauge.
 import json
 import tiktoken
 
-# GitHub Copilot's per-model input limits (verified empirically).
-# Standard Claude models cap at 168K; "-1m" variants allow ~1M.
+# GitHub Copilot's per-model input limits (verified via
+# scripts/check_copilot_models.py against the live /models endpoint).
+# As of mid-2026, base Opus 4.6/4.7/4.8 and Sonnet 4.6 all have 1M context.
 DEFAULT_MAX_INPUT = 168000
 MODEL_MAX_INPUT = {
-    # 1M-context variants
+    # 1M-context models (base models, not -1m variants)
+    "claude-opus-4-6": 1_000_000,
+    "claude-opus-4.6": 1_000_000,
+    "claude-opus-4-7": 1_000_000,
+    "claude-opus-4.7": 1_000_000,
+    "claude-opus-4-8": 1_000_000,
+    "claude-opus-4.8": 1_000_000,
+    "claude-sonnet-4-6": 1_000_000,
+    "claude-sonnet-4.6": 1_000_000,
+    # Legacy -1m suffixed variants
     "claude-opus-4-6-1m": 1_000_000,
     "claude-opus-4.6-1m": 1_000_000,
     "claude-opus-4-7-1m": 1_000_000,
     "claude-opus-4.7-1m": 1_000_000,
-    "claude-sonnet-4-5-1m": 1_000_000,
-    "claude-sonnet-4.5-1m": 1_000_000,
+    "claude-opus-4-7-1m-internal": 1_000_000,
+    "claude-opus-4.7-1m-internal": 1_000_000,
 }
 
 
@@ -227,15 +237,13 @@ class _TokenMonitorASGIMiddleware:
         try:
             data = json.loads(body) if body else {}
 
-            # If client opts into 1M context beta but didn't pick the -1m model
-            # variant, rewrite the model id so Copilot actually routes to the
-            # 1M-capable model. Map base model -> its 1M variant id.
-            MODEL_1M_MAP = {
-                "claude-opus-4-6": "claude-opus-4-6-1m",
-                "claude-opus-4.6": "claude-opus-4-6-1m",
-                "claude-opus-4-7": "claude-opus-4-7-1m",
-                "claude-opus-4.7": "claude-opus-4-7-1m",
-            }
+            # Historical: when only -1m variants supported 1M context, we
+            # rewrote base model -> -1m variant on beta opt-in. As of mid-2026
+            # Copilot's base Opus 4.6/4.7/4.8 and Sonnet 4.6 all have 1M
+            # context natively, so this map is intentionally empty. Re-add
+            # entries here if upstream regresses (verify with
+            # scripts/check_copilot_models.py first).
+            MODEL_1M_MAP = {}
             model_in = data.get("model", "")
             if (
                 isinstance(model_in, str)
