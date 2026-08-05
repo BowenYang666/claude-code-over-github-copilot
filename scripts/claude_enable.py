@@ -29,14 +29,28 @@ def main():
         except (json.JSONDecodeError, IOError):
             settings = {}
 
-    # Add proxy configuration
-    # No hardcoded model - Claude Code will use whatever model the user selects.
-    # All model names are forwarded to GitHub Copilot via wildcard routing.
+    # Add proxy configuration. GPT-5.6 is exposed by the gateway under its
+    # native model id; LiteLLM translates Claude Code's Anthropic requests to
+    # the Copilot Responses API.
     settings['env'] = {
         'ANTHROPIC_AUTH_TOKEN': master_key,
         'ANTHROPIC_BASE_URL': 'http://localhost:4444',
-        'ANTHROPIC_SMALL_FAST_MODEL': 'gpt-4'
+        # Claude Code uses the [1m] suffix to advertise and budget an extended
+        # context model. The proxy/upstream still receives gpt-5.6-sol.
+        'ANTHROPIC_MODEL': 'gpt-5.6-sol[1m]',
+        'ANTHROPIC_DEFAULT_OPUS_MODEL': 'gpt-5.6-sol[1m]',
+        'ANTHROPIC_SMALL_FAST_MODEL': 'gpt-5.6-luna',
+        'ANTHROPIC_DEFAULT_HAIKU_MODEL': 'gpt-5.6-luna',
+        'CLAUDE_CODE_SUBAGENT_MODEL': 'gpt-5.6-luna',
+        # Copilot reports a 1.05M total context but allows 922K prompt tokens.
+        # Compact against the real prompt ceiling instead of waiting for 1M.
+        'CLAUDE_CODE_AUTO_COMPACT_WINDOW': '922000',
+        'CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY': '1'
     }
+
+    # Keep the persisted model selection consistent with the environment
+    # override so /status and resumed sessions also identify the 1M model.
+    settings['model'] = 'gpt-5.6-sol[1m]'
 
     # Add schema if it's a new file
     if '$schema' not in settings:

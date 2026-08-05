@@ -53,6 +53,24 @@ model_list:
       model: github_copilot/claude-sonnet-4.6
       extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
 
+  # GPT-5.6 is Responses API-only on GitHub Copilot.  Without mode=responses,
+  # LiteLLM sends it to /chat/completions and Copilot rejects the request.
+  - model_name: gpt-5.6-sol
+    model_info:
+      mode: responses
+    litellm_params:
+      model: github_copilot/gpt-5.6-sol
+  - model_name: gpt-5.6-terra
+    model_info:
+      mode: responses
+    litellm_params:
+      model: github_copilot/gpt-5.6-terra
+  - model_name: gpt-5.6-luna
+    model_info:
+      mode: responses
+    litellm_params:
+      model: github_copilot/gpt-5.6-luna
+
   # NOTE: Dated ids Claude Code sends (e.g. claude-haiku-4-5-20251001) are
   # normalized by token_monitor.py (it strips the -YYYYMMDD suffix), so they
   # match the undated entries above without needing per-date config here.

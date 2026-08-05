@@ -33,6 +33,10 @@ def _strip_date_suffix(model: str) -> str:
 # As of mid-2026, base Opus 4.6/4.7/4.8 and Sonnet 4.6 all have 1M context.
 DEFAULT_MAX_INPUT = 168000
 MODEL_MAX_INPUT = {
+    # GPT-5.6 has a 1.05M total context window with a 922K prompt limit.
+    "gpt-5.6-sol": 922_000,
+    "gpt-5.6-terra": 922_000,
+    "gpt-5.6-luna": 922_000,
     # 1M-context models (base models, not -1m variants)
     "claude-opus-4-6": 1_000_000,
     "claude-opus-4.6": 1_000_000,
@@ -80,13 +84,18 @@ def _has_1m_beta(data: dict, headers: dict | None = None, query: str = "") -> bo
 
 def _limit_for_model(model: str, data: dict | None = None,
                     headers: dict | None = None, query: str = "") -> int:
-    if _has_1m_beta(data or {}, headers, query):
-        return 1_000_000
     if not model:
+        if _has_1m_beta(data or {}, headers, query):
+            return 1_000_000
         return DEFAULT_MAX_INPUT
     m = model.lower()
+    # Explicit provider limits take priority over the generic Anthropic 1M
+    # beta header. GPT-5.6 advertises 1M to Claude Code but Copilot permits a
+    # maximum prompt of 922K.
     if m in MODEL_MAX_INPUT:
         return MODEL_MAX_INPUT[m]
+    if _has_1m_beta(data or {}, headers, query):
+        return 1_000_000
     # Heuristic: any model id containing "-1m" gets the 1M cap
     if "-1m" in m or "_1m" in m:
         return 1_000_000

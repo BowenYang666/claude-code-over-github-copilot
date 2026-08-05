@@ -121,12 +121,29 @@ claude
 
 ## Model Configuration
 
-The proxy exposes these models to Claude Code:
+The proxy exposes these models to Claude Code. The Windows `claude-enable`
+command selects `gpt-5.6-sol[1m]` by default and uses Luna for background
+tasks/subagents.
 
-| Claude Code Model | Maps to GitHub Copilot           |
-|-------------------|----------------------------------|
-| `claude-sonnet-4` | `github_copilot/claude-sonnet-4` |
-| `gpt-4`         | `github_copilot/gpt-4`         |
+| Claude Code Model | Maps to GitHub Copilot | Role |
+|-------------------|------------------------|------|
+| `gpt-5.6-sol` | `github_copilot/gpt-5.6-sol` | Primary/powerful |
+| `gpt-5.6-terra` | `github_copilot/gpt-5.6-terra` | Versatile |
+| `gpt-5.6-luna` | `github_copilot/gpt-5.6-luna` | Fast/background |
+
+GitHub Copilot serves GPT-5.6 only through the OpenAI Responses API. The
+explicit `mode: responses` entries in `copilot-config.yaml` are required;
+letting GPT-5.6 fall through the wildcard route sends it to
+`/chat/completions` and returns HTTP 400.
+
+Claude Code can use a non-Anthropic model through LiteLLM's Anthropic Messages
+compatibility endpoint. Run `claude` normally after `claude-enable`, or select
+one explicitly with `claude --model gpt-5.6-sol[1m]`. The `[1m]` suffix makes
+Claude Code budget and display a 1M context window. Auto-compaction uses the
+upstream model's real 922K maximum prompt limit, leaving room before Copilot
+rejects an oversized request. Gateway models appear in the
+interactive `/model` picker when using Claude Code 2.1.129 or later; older
+versions can still use the configured default or the `--model` argument.
 
 ## Additional Commands (Linux/macOS)
 

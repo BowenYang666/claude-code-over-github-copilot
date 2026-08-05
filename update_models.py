@@ -2,40 +2,54 @@
 Auto-generate copilot-config.yaml model mappings from GitHub Copilot API.
 
 Fetches the current model list and creates dash->dot mappings for Claude models,
-plus a wildcard fallback for everything else.
+explicit Responses API routes for response-only models, and a wildcard fallback.
 
 Usage: python update_models.py
 """
 import json
 import re
 import os
+import urllib.request
 
-EXTRA_HEADERS = '{"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}'
-API_KEY_FILE = os.path.expanduser("~/.config/litellm/github_copilot/api-key.json")
+EXTRA_HEADERS = '{"Editor-Version": "vscode/1.95.0", "Copilot-Integration-Id": "vscode-chat"}'
+ACCESS_TOKEN_FILE = os.path.expanduser("~/.config/litellm/github_copilot/access-token")
+
+
+def get_chat_token():
+    """Exchange the cached GitHub OAuth token for a short-lived Copilot token."""
+    with open(ACCESS_TOKEN_FILE, encoding="utf-8") as f:
+        access_token = f.read().strip()
+
+    request = urllib.request.Request(
+        "https://api.github.com/copilot_internal/v2/token",
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "User-Agent": "GitHubCopilotChat/0.30.0",
+        },
+    )
+    with urllib.request.urlopen(request, timeout=15) as response:
+        return json.load(response)
 
 
 def fetch_models():
     """Fetch available models from GitHub Copilot API."""
-    import httpx
-
-    with open(API_KEY_FILE) as f:
-        info = json.load(f)
-
+    info = get_chat_token()
     token = info["token"]
     api_base = info["endpoints"]["api"]
 
-    r = httpx.get(
+    request = urllib.request.Request(
         f"{api_base}/models",
         headers={
             "Authorization": f"Bearer {token}",
-            "Editor-Version": "vscode/1.85.1",
+            "Editor-Version": "vscode/1.95.0",
             "Copilot-Integration-Id": "vscode-chat",
+            "User-Agent": "GitHubCopilotChat/0.30.0",
         },
-        timeout=15,
     )
-    data = r.json()
+    with urllib.request.urlopen(request, timeout=20) as response:
+        data = json.load(response)
     return [
-        m["id"]
+        m
         for m in data.get("data", [])
         if m.get("capabilities", {}).get("type") == "chat"
     ]
@@ -57,6 +71,7 @@ def dash_version(model_id):
 
 def generate_config(models):
     """Generate copilot-config.yaml content."""
+    model_ids = [model["id"] for model in models]
     lines = [
         "# GitHub Copilot uses dots in version numbers (claude-opus-4.7)",
         "# but Claude Code uses dashes (claude-opus-4-7).",
@@ -70,7 +85,7 @@ def generate_config(models):
         "  # === Auto-compatible mappings (dash -> dot conversion) ===",
     ]
 
-    for mid in sorted(models):
+    for mid in sorted(model_ids):
         if needs_dash_mapping(mid):
             dv = dash_version(mid)
             lines.extend([
@@ -78,6 +93,26 @@ def generate_config(models):
                 f"    litellm_params:",
                 f"      model: github_copilot/{mid}",
                 f"      extra_headers: {EXTRA_HEADERS}",
+            ])
+
+    responses_only = sorted(
+        [
+            model for model in models
+            if "/responses" in model.get("supported_endpoints", [])
+            and "/chat/completions" not in model.get("supported_endpoints", [])
+        ],
+        key=lambda model: model["id"],
+    )
+    if responses_only:
+        lines.extend(["", "  # === Responses API-only models ==="])
+        for model in responses_only:
+            mid = model["id"]
+            lines.extend([
+                f"  - model_name: {mid}",
+                "    model_info:",
+                "      mode: responses",
+                "    litellm_params:",
+                f"      model: github_copilot/{mid}",
             ])
 
     lines.extend([
@@ -97,18 +132,26 @@ def generate_config(models):
 
 
 def main():
-    if not os.path.exists(API_KEY_FILE):
-        print(f"[ERROR] {API_KEY_FILE} not found. Start the proxy once first to authenticate.")
+    if not os.path.exists(ACCESS_TOKEN_FILE):
+        print(f"[ERROR] {ACCESS_TOKEN_FILE} not found. Start the proxy once first to authenticate.")
         return
 
     print("Fetching models from GitHub Copilot API...")
     models = fetch_models()
     print(f"Found {len(models)} chat models")
 
-    claude_mappings = [m for m in models if needs_dash_mapping(m)]
+    claude_mappings = [m["id"] for m in models if needs_dash_mapping(m["id"])]
+    responses_only = [
+        m["id"] for m in models
+        if "/responses" in m.get("supported_endpoints", [])
+        and "/chat/completions" not in m.get("supported_endpoints", [])
+    ]
     print(f"Models needing dash->dot mapping: {len(claude_mappings)}")
     for m in sorted(claude_mappings):
         print(f"  {dash_version(m):30s} -> {m}")
+    print(f"Responses API-only models: {len(responses_only)}")
+    for model_id in sorted(responses_only):
+        print(f"  {model_id}")
 
     config = generate_config(models)
 
