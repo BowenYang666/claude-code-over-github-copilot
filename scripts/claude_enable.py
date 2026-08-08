@@ -39,9 +39,13 @@ def main():
         # context model. The proxy/upstream still receives gpt-5.6-sol.
         'ANTHROPIC_MODEL': 'gpt-5.6-sol[1m]',
         'ANTHROPIC_DEFAULT_OPUS_MODEL': 'gpt-5.6-sol[1m]',
+        # Built-in Research/Explore/Plan agents can request the Sonnet alias.
+        # Route that alias and all subagents to the balanced Terra model.
+        'ANTHROPIC_DEFAULT_SONNET_MODEL': 'gpt-5.6-terra[1m]',
+        'CLAUDE_CODE_SUBAGENT_MODEL': 'gpt-5.6-terra[1m]',
+        # Keep lightweight background features on Luna.
         'ANTHROPIC_SMALL_FAST_MODEL': 'gpt-5.6-luna',
         'ANTHROPIC_DEFAULT_HAIKU_MODEL': 'gpt-5.6-luna',
-        'CLAUDE_CODE_SUBAGENT_MODEL': 'gpt-5.6-luna',
         # Copilot reports a 1.05M total context but allows 922K prompt tokens.
         # Compact against the real prompt ceiling instead of waiting for 1M.
         'CLAUDE_CODE_AUTO_COMPACT_WINDOW': '922000',
