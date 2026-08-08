@@ -122,14 +122,15 @@ claude
 ## Model Configuration
 
 The proxy exposes these models to Claude Code. The Windows `claude-enable`
-command selects `gpt-5.6-sol[1m]` by default and uses Luna for background
-tasks/subagents.
+command selects `gpt-5.6-sol[1m]` by default, uses Terra 1M for
+Research/Explore/Plan and other subagents, and reserves Luna for lightweight
+background tasks.
 
 | Claude Code Model | Maps to GitHub Copilot | Role |
 |-------------------|------------------------|------|
 | `gpt-5.6-sol` | `github_copilot/gpt-5.6-sol` | Primary/powerful |
-| `gpt-5.6-terra` | `github_copilot/gpt-5.6-terra` | Versatile |
-| `gpt-5.6-luna` | `github_copilot/gpt-5.6-luna` | Fast/background |
+| `gpt-5.6-terra` | `github_copilot/gpt-5.6-terra` | Research/subagents |
+| `gpt-5.6-luna` | `github_copilot/gpt-5.6-luna` | Lightweight background |
 
 GitHub Copilot serves GPT-5.6 only through the OpenAI Responses API. The
 explicit `mode: responses` entries in `copilot-config.yaml` are required;
