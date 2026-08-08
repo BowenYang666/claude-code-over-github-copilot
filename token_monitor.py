@@ -281,23 +281,54 @@ class _TokenMonitorASGIMiddleware:
             ):
                 new_model = MODEL_1M_MAP[new_model.lower()]
 
-            # Apply rewrite (if any) once: update body + Content-Length.
-            if isinstance(model_in, str) and new_model != model_in:
+            # Strip the 1M-context beta opt-in. Base Opus 4.6/4.7/4.8 and
+            # Sonnet 4.6 are natively 1M upstream and REJECT the context-1m
+            # beta flag with a generic 400 Bad Request. Remove it from both the
+            # body ("betas"/"anthropic_beta") and the anthropic-beta header.
+            body_changed = new_model != model_in
+            if _has_1m_beta(data, headers, query):
+                def _drop_1m(items):
+                    return [b for b in items
+                            if not ("context-1m" in str(b).lower()
+                                    or "1m-2025" in str(b).lower())]
+                for key in ("betas", "anthropic_beta"):
+                    val = data.get(key)
+                    if isinstance(val, list):
+                        data[key] = _drop_1m(val)
+                    elif isinstance(val, str) and ("context-1m" in val.lower()
+                                                   or "1m-2025" in val.lower()):
+                        data[key] = ""
+                body_changed = True
+                print("\033[36m[TokenMonitor] stripped 1M context beta "
+                      "(base model already 1M)\033[0m", flush=True)
+
+            # Apply rewrite (if any) once: update body + Content-Length, and
+            # strip the anthropic-beta header if it carried the 1M flag.
+            if isinstance(model_in, str) and body_changed:
                 data["model"] = new_model
                 body = json.dumps(data).encode("utf-8")
-                # Patch Content-Length in scope headers so downstream is happy
                 new_headers = []
                 for k, v in scope.get("headers", []):
-                    if k.lower() == b"content-length":
+                    kl = k.lower()
+                    if kl == b"content-length":
                         new_headers.append((k, str(len(body)).encode("latin-1")))
+                    elif kl == b"anthropic-beta":
+                        vs = v.decode("latin-1")
+                        kept = [p for p in vs.split(",")
+                                if not ("context-1m" in p.lower()
+                                        or "1m-2025" in p.lower())]
+                        if kept:
+                            new_headers.append((k, ",".join(kept).encode("latin-1")))
+                        # else: drop the header entirely
                     else:
                         new_headers.append((k, v))
                 scope["headers"] = new_headers
-                print(
-                    f"\033[36m[TokenMonitor] rewriting model "
-                    f"{model_in} -> {new_model}\033[0m",
-                    flush=True,
-                )
+                if new_model != model_in:
+                    print(
+                        f"\033[36m[TokenMonitor] rewriting model "
+                        f"{model_in} -> {new_model}\033[0m",
+                        flush=True,
+                    )
 
             tokens = estimate_input_tokens(data)
             model = data.get("model", "?")

@@ -3,7 +3,19 @@ Start LiteLLM proxy with token monitor middleware.
 Replaces direct `litellm` CLI invocation so we can inject our FastAPI middleware.
 """
 
+import signal
 import sys
+
+# Ignore Ctrl+Break (CTRL_BREAK_EVENT / SIGBREAK). On Windows, Claude Code
+# cancels/recycles its spawned shell commands by sending CTRL_BREAK_EVENT to
+# the console process group, which would otherwise also terminate this proxy
+# when it shares a console. We deliberately leave SIGINT (Ctrl+C) untouched so
+# the user can still stop the proxy manually. SIGBREAK is Windows-only.
+try:
+    signal.signal(signal.SIGBREAK, signal.SIG_IGN)
+except (AttributeError, ValueError):
+    pass
+
 from token_monitor import install_monitor
 
 
